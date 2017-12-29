@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>my_pcl_tutorial</name>
+  <name>object tracking</name>
   <version>0.0.0</version>
-  <description>The my_pcl_tutorial package</description>
+  <description>The lidar object tracking package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->

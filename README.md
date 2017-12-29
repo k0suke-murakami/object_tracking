@@ -1,6 +1,5 @@
 # ROS Package for Object Detecton/Tracking
 
----
 ## Please notice this repository is still in progress.
 
 ### Intro
