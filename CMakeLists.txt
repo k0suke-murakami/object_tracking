@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(my_pcl_tutorial)
+project(object_tracking)
 
 set(CMAKE_CXX_STANDARD 11)
 
@@ -27,7 +27,7 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES my_pcl_tutorial
+#  LIBRARIES
 #  CATKIN_DEPENDS pcl_conversions pcl_ros roscpp sensor_msgs
 #  DEPENDS system_lib
 )
