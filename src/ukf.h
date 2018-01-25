@@ -5,6 +5,9 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <pcl/point_types.h>
+#include <pcl/point_cloud.h>
+
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -174,6 +177,28 @@ public:
     std::vector<double> velo_history_;
     bool isStatic_;
 
+    // bounding box params
+    bool isVisBB_;
+    // todo: need initialization?
+    pcl::PointCloud<pcl::PointXYZ> BBox_;
+    pcl::PointCloud<pcl::PointXYZ> bestBBox_;
+    double bestYaw_;
+    double bb_yaw_;
+    double bb_area_;
+    std::vector<double> bb_yaw_history_;
+    std::vector<double> bb_vel_history_;
+    std::vector<double> bb_area_history_;
+
+    // for env classification
+    VectorXd initMeas_;
+    double distFromInit_;
+
+    
+    std::vector<VectorXd> local2local_;
+    std::vector<double> local2localYawVec_;
+
+    double x_merge_yaw_;
+
     /**
      * Constructor
      */
@@ -183,6 +208,8 @@ public:
      * Destructor
      */
     virtual ~UKF();
+
+    void UpdateYawWithHighProb();
 
     void Initialize(VectorXd z, double timestamp);
 

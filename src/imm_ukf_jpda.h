@@ -10,8 +10,16 @@ using namespace std;
 using namespace pcl;
 
 // void immUkfJpdaf(vector<PointCloud<PointXYZ>> bBoxes);
+// void immUkfJpdaf(vector<PointCloud<PointXYZ>> bBoxes, double timestamp, 
+// 	vector<PointXY>& targets, vector<int>& trackManage, vector<bool>& isStaticVec);
+void getOriginPoints(double timestamp, vector<vector<double>>& originPoints);
+
+Eigen::VectorXd getCpFromBbox(PointCloud<PointXYZ> bBox);
+
 void immUkfJpdaf(vector<PointCloud<PointXYZ>> bBoxes, double timestamp, 
-	vector<PointXY>& targets, vector<int>& trackManage, vector<bool>& isStaticVec);
+	PointCloud<PointXYZ>& targets, vector<vector<double>>& targetVandYaw, 
+	vector<int>& trackManage, vector<bool>& isStaticVec,
+	vector<bool>& isVisVec, vector<PointCloud<PointXYZ>>& visBB);
 
 
 

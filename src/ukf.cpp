@@ -65,12 +65,19 @@ UKF::UKF() {
     // std_cv_yawdd_   = 2;
     // std_rm_yawdd_ = 3;
 
-    std_a_cv_   = 1;
-    std_a_ctrv_ = 1;
-    std_a_rm_   = 5;
-    std_ctrv_yawdd_ = 1;
-    std_cv_yawdd_   = 1;
+    std_a_cv_   = 2;
+    std_a_ctrv_ = 2;
+    std_a_rm_   = 3;
+    std_ctrv_yawdd_ = 2;
+    std_cv_yawdd_   = 2;
     std_rm_yawdd_ = 3;
+
+    // std_a_cv_   = 3;
+    // std_a_ctrv_ = 3;
+    // std_a_rm_   = 3;
+    // std_ctrv_yawdd_ = 3;
+    // std_cv_yawdd_   = 3;
+    // std_rm_yawdd_ = 3;
 
     // ------------- not delete here
     // std_a_cv_   = 2;
@@ -82,10 +89,10 @@ UKF::UKF() {
     //------------------
     // Laser measurement noise standard deviation position1 in m
     std_laspx_ = 0.15;
-    // std_laspx_ = 0.5;
+    // std_laspx_ = 0.3;
     // Laser measurement noise standard deviation position2 in m
     std_laspy_ = 0.15;
-    // std_laspy_ = 0.5;
+    // std_laspy_ = 0.3;
 
     // initially set to false, set to true in first call of ProcessMeasurement
     is_initialized_ = false;
@@ -210,9 +217,30 @@ UKF::UKF() {
     pD_     = 0.9;
     pG_     = 0.99;
 
+    //track parameter
     lifetime_ = 0;
     velo_history_;
     isStatic_ = false;
+
+    //bounding box params
+    isVisBB_ = false;
+    bestYaw_ = 0;
+    bb_yaw_  = 0;
+    bb_area_ = 0;
+
+    //for env classification
+    initMeas_ = VectorXd(2);
+    distFromInit_ = 0;
+
+    // local2local yaw (t-1 to t)
+    // local2localYaw_ = 0;
+
+    x_merge_yaw_ = 0;
+
+
+
+    // globalYaw_ = 0;
+    // anchorTF_  = VectorXd(2);
 
     //    double gammaG = 4.61; // 90%
 //    double gammaG = 5.99; // 95%
@@ -277,12 +305,20 @@ void UKF::Initialize(VectorXd z, double timestamp) {
     x_cv_ = x_ctrv_ = x_rm_ = x_merge_;
     P_cv_ = P_ctrv_ = P_rm_ = P_merge_;
 
-    lS_cv_   <<  2, 0,
-            0, 2;
-    lS_ctrv_ <<  2, 0,
-            0, 2;
-    lS_rm_   <<  2, 0,
-            0, 2;
+    // lS_cv_   <<  2, 0,
+    //              0, 2;
+    // lS_ctrv_ <<  2, 0,
+    //              0, 2;
+    // lS_rm_   <<  2, 0,
+    //              0, 2;
+    lS_cv_   <<  1, 0,
+                 0, 1;
+    lS_ctrv_ <<  1, 0,
+                 0, 1;
+    lS_rm_   <<  1, 0,
+                 0, 1;
+
+    // anchorTF_ << 0, 0;
 }
 
 double UKF::CalculateGauss(VectorXd z, int sensorInd, int modelInd){
@@ -360,13 +396,40 @@ void UKF::UpdateModeProb(vector<double> lambdaVec){
     // cout << endl<<"mode prob"<<endl<<"cv: "<<modeProbCV_<<endl<<"ctrv: "<<modeProbCTRV_<<endl<<"rm: "<<modeProbRM_<<endl;
 }
 
+void UKF::UpdateYawWithHighProb(){
+    if(modeProbCV_ > modeProbCTRV_){
+        if(modeProbCV_ > modeProbRM_){
+            x_merge_yaw_ = x_cv_(3);
+        }
+        else{
+            x_merge_yaw_ = x_rm_(3);
+        }
+    }
+    else{
+        if(modeProbCTRV_ > modeProbRM_){
+            x_merge_yaw_ = x_ctrv_(3);
+        }
+        else{
+            x_merge_yaw_ = x_rm_(3);
+        }
+    }
+    x_merge_(3) = x_merge_yaw_;
+}
+
 void UKF::MergeEstimationAndCovariance(){
     // cout << endl<<"merge x cv" <<endl << x_cv_ <<endl;
     // cout << endl<<"merge x ctrv" <<endl << x_ctrv_ <<endl;
     // cout << endl<<"merge x rm" <<endl << x_rm_ <<endl;
+
+
     x_merge_ = modeProbCV_*x_cv_ + modeProbCTRV_ *x_ctrv_ + modeProbRM_ * x_rm_;
     while (x_merge_(3)> M_PI) x_merge_(3) -= 2.*M_PI;
     while (x_merge_(3)<-M_PI) x_merge_(3) += 2.*M_PI;
+
+    // not interacting yaw(-pi ~ pi)
+    UpdateYawWithHighProb();
+    // cout << "merged yaw " << x_merge_yaw_<< endl;
+
     P_merge_ = modeProbCV_  *(P_cv_   +(x_cv_   - x_merge_)*(x_cv_   - x_merge_).transpose()) +
                modeProbCTRV_*(P_ctrv_ +(x_ctrv_ - x_merge_)*(x_ctrv_ - x_merge_).transpose())+
                modeProbRM_  *(P_rm_   +(x_rm_   - x_merge_)*(x_rm_   - x_merge_).transpose());
@@ -403,6 +466,11 @@ void UKF::Interaction() {
     x_cv_   = modeMatchProbCV2CV_  *x_pre_cv + modeMatchProbCTRV2CV_  *x_pre_ctrv + modeMatchProbRM2CV_  *x_pre_rm;
     x_ctrv_ = modeMatchProbCV2CTRV_*x_pre_cv + modeMatchProbCTRV2CTRV_*x_pre_ctrv + modeMatchProbRM2CTRV_*x_pre_rm;
     x_rm_   = modeMatchProbCV2RM_  *x_pre_cv + modeMatchProbCTRV2RM_  *x_pre_ctrv + modeMatchProbRM2RM_*x_pre_rm;
+
+    // not interacting yaw(-pi ~ pi)
+    x_cv_(3)   = x_pre_cv(3);
+    x_ctrv_(3) = x_pre_ctrv(3);
+    x_rm_(3)   = x_pre_rm(3);
 
 //    cout<< "cv x state before interaction: "  <<endl<<x_pre_cv<<endl;
 //    cout<< "ctrv x state before interaction: "<<endl<<x_pre_ctrv<<endl;

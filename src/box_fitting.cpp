@@ -2,6 +2,7 @@
 // Created by kosuke on 11/29/17.
 //
 #include <array>
+#include <random>
 #include <pcl/io/pcd_io.h>
 #include <opencv2/opencv.hpp>
 #include "box_fitting.h"
@@ -153,6 +154,8 @@ void getBoundingBox(vector<PointCloud<PointXYZ>>  clusteredPoints,
         vector<Point2f> pcPoints(4);
         float minMx, minMy, maxMx, maxMy;
         float minM = 999; float maxM = -999; float maxZ = -99;
+        // for center of gravity
+        float sumX = 0; float sumY = 0;
         for (int iPoint = 0; iPoint < clusteredPoints[iCluster].size(); iPoint++){
             float pX = clusteredPoints[iCluster][iPoint].x;
             float pY = clusteredPoints[iCluster][iPoint].y;
@@ -186,25 +189,31 @@ void getBoundingBox(vector<PointCloud<PointXYZ>>  clusteredPoints,
 
             //get maxZ
             if(pZ > maxZ) maxZ = pZ;
+
+            sumX += offsetX;
+            sumY += offsetY; 
+
         }
         // L shape fitting parameters
         float xDist = maxMx - minMx;
         float yDist = maxMy - minMy;
         float slopeDist = sqrt(xDist*xDist + yDist*yDist);
         float slope = (maxMy - minMy)/(maxMx - minMx);
+
         // random variable
-        random_device rnd;
-        mt19937 mt(rnd());
-        uniform_int_distribution<> rand100(0, numPoints-1);
+        mt19937_64 mt(0);
+        uniform_int_distribution<> randPoints(0, numPoints-1);
 
         // start l shape fitting for car like object
         // lSlopeDist = 30, lnumPoints = 300
         if(slopeDist > lSlopeDist && numPoints > lnumPoints){
             float maxDist = 0;
             float maxDx, maxDy;
-            // 30 random points, get max distance
+
+            // 80 random points, get max distance
             for(int i = 0; i < ramPoints; i++){
-                int pInd = rand100(mt);
+                int pInd = randPoints(mt);
+                assert(pInd >= 0 && pInd < clusteredPoints[iCluster].size());
                 float xI = clusteredPoints[iCluster][pInd].x;
                 float yI = clusteredPoints[iCluster][pInd].y;
 
@@ -216,6 +225,11 @@ void getBoundingBox(vector<PointCloud<PointXYZ>>  clusteredPoints,
                     maxDy = yI;
                 }
             }
+
+            // for center of gravity
+            // maxDx = sumX/clusteredPoints[iCluster].size();
+            // maxDy = sumY/clusteredPoints[iCluster].size();
+
             // vector adding
             float maxMvecX = maxMx - maxDx;
             float maxMvecY = maxMy - maxDy;

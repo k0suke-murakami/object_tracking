@@ -216,7 +216,9 @@ void groundRemove(PointCloud<pcl::PointXYZ>   cloud,
         o.z = z;
         int chI, binI;
         getCellIndexFromPoints(x, y, chI, binI);
-
+        // assert(chI < 0 || chI >=numChannel || binI < 0 || binI >= numBin);
+        if(chI < 0 || chI >=numChannel || binI < 0 || binI >= numBin) continue;
+        
         if (polarData[chI][binI].isThisGround()) {
             float hGround = polarData[chI][binI].getHGround();
             if (z < (hGround + 0.25)) {

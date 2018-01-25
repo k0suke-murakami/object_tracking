@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(my_pcl_tutorial)
+project(object_tracking)
 
 set(CMAKE_CXX_STANDARD 11)
 
@@ -27,7 +27,7 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES my_pcl_tutorial
+#  LIBRARIES object_tracking
 #  CATKIN_DEPENDS pcl_conversions pcl_ros roscpp sensor_msgs
 #  DEPENDS system_lib
 )
@@ -45,10 +45,10 @@ include_directories(
 
 
 
-#set(SOURCE_FILES src/example.cpp src/gaus_blur.cpp src/gaus_blur.h src/ground_removal.cpp src/ground_removal.h src/component_clustering.cpp src/component_clustering.h src/box_fitting.cpp src/box_fitting.cpp src/ukf.cpp)
+#set(SOURCE_FILES src/main.cpp src/gaus_blur.cpp src/gaus_blur.h src/ground_removal.cpp src/ground_removal.h src/component_clustering.cpp src/component_clustering.h src/box_fitting.cpp src/box_fitting.cpp src/ukf.cpp)
 
-set(SOURCE_FILES src/example.cpp src/gaus_blur.cpp src/gaus_blur.h src/ground_removal.cpp src/ground_removal.h src/component_clustering.cpp src/component_clustering.h src/box_fitting.cpp src/box_fitting.cpp src/ukf.cpp src/ukf.h src/imm_ukf_jpda.cpp src/imm_ukf_jpda.h)
-add_executable(example ${SOURCE_FILES})
+set(SOURCE_FILES src/main.cpp src/gaus_blur.cpp src/gaus_blur.h src/ground_removal.cpp src/ground_removal.h src/component_clustering.cpp src/component_clustering.h src/box_fitting.cpp src/box_fitting.cpp src/ukf.cpp src/ukf.h src/imm_ukf_jpda.cpp src/imm_ukf_jpda.h)
+add_executable(main ${SOURCE_FILES})
 
 
-target_link_libraries(example ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(main ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})

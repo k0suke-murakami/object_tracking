@@ -45,7 +45,7 @@ rviz
 
 ##### Terminal 4
 ```
-rosrun my_pcl_tutorial examp input:=/kitti/velo/pointcloud
+rosrun object_tracking examp input:=/kitti/velo/pointcloud
 ```
 
 ### Result
