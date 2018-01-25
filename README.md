@@ -27,6 +27,8 @@ wget http://kitti.is.tue.mpg.de/kitti/raw_data/2011_09_26_calib.zip
 
 ### Start
 
+#### PLEASE make sure you load the files, `src/ego_velo.txt` and `src/ego_yaw.txt` in `src/imm_ukf_jpda.cpp` l68, l69
+
 ##### Terminal 1
 ```
 roscore
@@ -44,7 +46,7 @@ rviz
 
 ##### Terminal 4
 ```
-rosrun object_tracking examp input:=/kitti/velo/pointcloud
+rosrun object_tracking main input:=/kitti/velo/pointcloud
 ```
 
 ### Result
