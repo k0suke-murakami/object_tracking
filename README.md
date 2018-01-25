@@ -51,7 +51,7 @@ rosrun object_tracking main input:=/kitti/velo/pointcloud
 
 ### Result
 
-![arch](./pic/result1.png)
+![arch](./pic/result2.png)
 
 ######  Youtube [Clip](https://www.youtube.com/watch?v=zzFpTVk2Uj0)
 
