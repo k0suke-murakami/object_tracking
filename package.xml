@@ -1,9 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>object_tracking</name>
-  <version>0.0.0</version>
-  <description>The object_tracking package</description>
-
+<name>object tracking</name>
+<version>0.0.0</version>
+<description>The object_tracking package</description>
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- main:  -->
   <!-- <maintainer email="jane.doe@main.com">Jane Doe</maintainer> -->
