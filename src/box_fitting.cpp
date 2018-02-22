@@ -7,59 +7,70 @@
 #include <opencv2/opencv.hpp>
 #include "box_fitting.h"
 
+
 using namespace std;
 using namespace pcl;
 using namespace cv;
 
-// float picScale = 30;
-float picScale = 900/roiM;
-int ramPoints = 80;
-int lSlopeDist = 3.0;
-int lnumPoints = 300;
+// // float picScale = 30;
+// float roiM_ = 60;
+// float picScale = 900/roiM_;
+// int ramPoints = 80;
 
-float sensorHeight = 1.73;
-// float tHeightMin = 1.2;
-float tHeightMin = 1.0;
-float tHeightMax = 2.6;
-// float tWidthMin = 0.5;
-// float tWidthMin = 0.4;
-float tWidthMin = 0.25;
-float tWidthMax = 3.5;
-float tLenMin = 0.5;
-float tLenMax = 14.0;
-float tAreaMax = 20.0;
-float tRatioMin = 1.3;
-float tRatioMax = 5.0;
-float minLenRatio = 3.0;
-float tPtPerM3 = 8;
+// // l-shape fitting params
+// int lSlopeDist = 30;
+// int lnumPoints = 300;
 
-void getClusteredPoints(PointCloud<PointXYZ>::Ptr elevatedCloud,
-                        array<array<int, numGrid>, numGrid> cartesianData,
-                        vector<PointCloud<PointXYZ>>&  clusteredPoints) {
-    for (int i = 0; i < elevatedCloud->size(); i++) {
-        float x = elevatedCloud->points[i].x;
-        float y = elevatedCloud->points[i].y;
-        float z = elevatedCloud->points[i].z;
-        float xC = x + roiM / 2;
-        float yC = y + roiM / 2;
-        // exclude outside roi points
-        if (xC < 0 || xC >= roiM || yC < 0 || yC >= roiM) continue;
-        int xI = floor(numGrid * xC / roiM);
-        int yI = floor(numGrid * yC / roiM);
+// // float sensorHeight = 1.73;
+// float sensorHeight = 2.35;
 
-        int clusterNum = cartesianData[xI][yI]; //1 ~ numCluster
-        int vectorInd = clusterNum - 1; //0 ~ (numCluster -1 )
-        if (clusterNum != 0) {
-            PointXYZ o;
-            o.x = x;
-            o.y = y;
-            o.z = z;
-            clusteredPoints[vectorInd].push_back(o);
-        }
-    }
+// // rule-based filter params
+// float tHeightMin = 1.0;
+// // float tHeightMin = 1.2
+// float tHeightMax = 2.6;
+// // float tWidthMin = 0.5;
+// // float tWidthMin = 0.4;
+// float tWidthMin = 0.25;
+// float tWidthMax = 3.5;
+// float tLenMin = 0.5;
+// float tLenMax = 14.0;
+// float tAreaMax = 20.0;
+// float tRatioMin = 1.3;
+// float tRatioMax = 5.0;
+// float minLenRatio = 3.0;
+// float tPtNumPerVol = 8; // point count per bbox volume
+
+BoxFitting::BoxFitting(){
+    // float picScale = 30;
+    roiM_ = 60;
+    picScale_ = 900/roiM_;
+    ramPoints_ = 80;
+
+    // l-shape fitting params
+    lSlopeDist_ = 30;
+    lnumPoints_ = 300;
+
+    // float sensorHeight_ = 1.73;
+    sensorHeight_ = 2.35;
+
+    // rule-based filter params
+    tHeightMin_ = 1.0;
+    // tHeightMin_ = 1.2
+    tHeightMax_ = 2.6;
+    // tWidthMin_ = 0.5;
+    // tWidthMin_ = 0.4;
+    tWidthMin_ = 0.25;
+    tWidthMax_ = 3.5;
+    tLenMin_ = 0.5;
+    tLenMax_ = 14.0;
+    tAreaMax_ = 20.0;
+    tRatioMin_ = 1.3;
+    tRatioMax_ = 5.0;
+    minLenRatio_ = 3.0;
+    tPtNumPerVol_ = 8; // point c
 }
 
-void getPointsInPcFrame(Point2f rectPoints[], vector<Point2f>& pcPoints, int offsetX, int offsetY){
+void BoxFitting::getPointsInPcFrame(Point2f rectPoints[], vector<Point2f>& pcPoints, int offsetX, int offsetY){
     // loop 4 rect points
     for (int pointI = 0; pointI < 4; pointI++){
         float picX = rectPoints[pointI].x;
@@ -69,19 +80,19 @@ void getPointsInPcFrame(Point2f rectPoints[], vector<Point2f>& pcPoints, int off
         float rOffsetY = picY - offsetY;
         // reverse from image coordinate to eucledian coordinate
         float rX = rOffsetX;
-        float rY = picScale*roiM - rOffsetY;
+        float rY = picScale_*roiM_ - rOffsetY;
         // reverse to 30mx30m scale
-        float rmX = rX/picScale;
-        float rmY = rY/picScale;
+        float rmX = rX/picScale_;
+        float rmY = rY/picScale_;
         // reverse from (0 < x,y < 30) to (-15 < x,y < 15)
-        float pcX = rmX - roiM/2;
-        float pcY = rmY - roiM/2;
+        float pcX = rmX - roiM_/2;
+        float pcY = rmY - roiM_/2;
         Point2f point(pcX, pcY);
         pcPoints[pointI] = point;
     }
 }
 
-bool ruleBasedFilter(vector<Point2f> pcPoints, float maxZ, int numPoints){
+bool BoxFitting::ruleBasedFilter(vector<Point2f> pcPoints, float maxZ, int numPoints){
     bool isPromising = false;
     //minnimam points thresh
     if(numPoints < 100) return isPromising;
@@ -106,25 +117,25 @@ bool ruleBasedFilter(vector<Point2f> pcPoints, float maxZ, int numPoints){
         width = dist1;
     }
     // assuming ground = sensor height
-    height = maxZ + sensorHeight;
+    height = maxZ + sensorHeight_;
     // assuming right angle
     area = dist1*dist2;
     mass = area*height;
     ratio = length/width;
 
     //start rule based filtering
-    if(height > tHeightMin && height < tHeightMax){
-        if(width > tWidthMin && width < tWidthMax){
-            if(length > tLenMin && length < tLenMax){
-                if(area < tAreaMax){
-                    if(numPoints > mass*tPtPerM3){
-                        if(length > minLenRatio){
-                            if(ratio > tRatioMin && ratio < tRatioMax){
+    if(height > tHeightMin_ && height < tHeightMax_){
+        if(width > tWidthMin_ && width < tWidthMax_){
+            if(length > tLenMin_ && length < tLenMax_){
+                if(area < tAreaMax_){
+                    if(numPoints > mass*tPtNumPerVol_){
+                        if(length > minLenRatio_){
+                            if(ratio > tRatioMin_ && ratio < tRatioMax_){
                                 isPromising = true;
                                 return isPromising;
                             }
                         }
-                        else{
+                        else{   
                             isPromising = true;
                             return isPromising;
                         }
@@ -136,45 +147,49 @@ bool ruleBasedFilter(vector<Point2f> pcPoints, float maxZ, int numPoints){
     else return isPromising;
 }
 
-void getBoundingBox(vector<PointCloud<PointXYZ>>  clusteredPoints,
+void BoxFitting::getBoundingBox(vector<PointCloud<PointXYZRGB>>  clusteredPoints,
+                    double timestamp,
                     vector<PointCloud<PointXYZ>>& bbPoints){
     for (int iCluster = 0; iCluster < clusteredPoints.size(); iCluster++){
-        Mat m (picScale*roiM, picScale*roiM, CV_8UC1, Scalar(0));
-        float initPX = clusteredPoints[iCluster][0].x + roiM/2;
-        float initPY = clusteredPoints[iCluster][0].y + roiM/2;
-        int initX = floor(initPX*picScale);
-        int initY = floor(initPY*picScale);
+        // calculating offset so that shape fitting would be visualized nicely 
+        Mat m (picScale_*roiM_, picScale_*roiM_, CV_8UC1, Scalar(0));
+        float initPX = clusteredPoints[iCluster][0].x + roiM_/2;
+        float initPY = clusteredPoints[iCluster][0].y + roiM_/2;
+        int initX = floor(initPX*picScale_);
+        int initY = floor(initPY*picScale_);
         int initPicX = initX;
-        int initPicY = picScale*roiM - initY;
-        int offsetInitX = roiM*picScale/2 - initPicX;
-        int offsetInitY = roiM*picScale/2 - initPicY;
+        int initPicY = picScale_*roiM_ - initY;
+        int offsetInitX = roiM_*picScale_/2 - initPicX;
+        int offsetInitY = roiM_*picScale_/2 - initPicY;
 
         int numPoints = clusteredPoints[iCluster].size();
         vector<Point> pointVec(numPoints);
         vector<Point2f> pcPoints(4);
         float minMx, minMy, maxMx, maxMy;
         float minM = 999; float maxM = -999; float maxZ = -99;
+
         // for center of gravity
-        float sumX = 0; float sumY = 0;
-        for (int iPoint = 0; iPoint < clusteredPoints[iCluster].size(); iPoint++){
+        // float sumX = 0; float sumY = 0;
+
+        for (int iPoint = 0; iPoint < numPoints; iPoint++){
             float pX = clusteredPoints[iCluster][iPoint].x;
             float pY = clusteredPoints[iCluster][iPoint].y;
             float pZ = clusteredPoints[iCluster][iPoint].z;
-            // cast (-15 < x,y < 15) into (0 < x,y < 30)
-            float roiX = pX + roiM/2;
-            float roiY = pY + roiM/2;
-            // cast 30mx30m into 900x900 scale
-            int x = floor(roiX*picScale);
-            int y = floor(roiY*picScale);
+            // cast (roiM_/2 < x,y < roiM_/2) into (0 < x,y < roiM_)
+            float roiX = pX + roiM_/2;
+            float roiY = pY + roiM_/2;
+            // cast (roiM_)mx(roiM_)m into 900x900 scale
+            int x = floor(roiX*picScale_);
+            int y = floor(roiY*picScale_);
             // cast into image coordinate
             int picX = x;
-            int picY = picScale*roiM - y;
+            int picY = picScale_*roiM_ - y;
             // offset so that the object would be locate at the center
             int offsetX = picX + offsetInitX;
             int offsetY = picY + offsetInitY;
             m.at<uchar>(offsetY, offsetX) = 255;
             pointVec[iPoint] = Point(offsetX, offsetY);
-            // calculate min and max slope
+            // calculate min and max slope for x1, x3(edge points)
             float m = pY/pX;
             if(m < minM) {
                 minM = m;
@@ -190,10 +205,12 @@ void getBoundingBox(vector<PointCloud<PointXYZ>>  clusteredPoints,
             //get maxZ
             if(pZ > maxZ) maxZ = pZ;
 
-            sumX += offsetX;
-            sumY += offsetY; 
+            // for center of gravity
+            // sumX += offsetX;
+            // sumY += offsetY; 
 
         }
+
         // L shape fitting parameters
         float xDist = maxMx - minMx;
         float yDist = maxMy - minMy;
@@ -201,17 +218,18 @@ void getBoundingBox(vector<PointCloud<PointXYZ>>  clusteredPoints,
         float slope = (maxMy - minMy)/(maxMx - minMx);
 
         // random variable
-        mt19937_64 mt(0);
+        mt19937_64 mt;
+        mt.seed(timestamp);
         uniform_int_distribution<> randPoints(0, numPoints-1);
 
         // start l shape fitting for car like object
-        // lSlopeDist = 30, lnumPoints = 300
-        if(slopeDist > lSlopeDist && numPoints > lnumPoints){
+        // lSlopeDist = 30, lnumPoints = 300, picScale = 15: (means realSlopeDist > 2.0m)
+        if(slopeDist > lSlopeDist_ && numPoints > lnumPoints_){
             float maxDist = 0;
             float maxDx, maxDy;
 
             // 80 random points, get max distance
-            for(int i = 0; i < ramPoints; i++){
+            for(int i = 0; i < ramPoints_; i++){
                 int pInd = randPoints(mt);
                 assert(pInd >= 0 && pInd < clusteredPoints[iCluster].size());
                 float xI = clusteredPoints[iCluster][pInd].x;
@@ -246,32 +264,32 @@ void getBoundingBox(vector<PointCloud<PointXYZ>>  clusteredPoints,
             if(!isPromising) continue;
             // ------start visualization-----
             // cast (-15 < x,y < 15) into (0 < x,y < 30)
-//            float a = maxMx + roiM/2;
-//            float b = maxMy + roiM/2;
-//            float c = minMx + roiM/2;
-//            float d = minMy + roiM/2;
-//            float e = maxDx + roiM/2;
-//            float f = maxDy + roiM/2;
-//            float g = lastX + roiM/2;
-//            float h = lastY + roiM/2;
+//            float a = maxMx + roiM_/2;
+//            float b = maxMy + roiM_/2;
+//            float c = minMx + roiM_/2;
+//            float d = minMy + roiM_/2;
+//            float e = maxDx + roiM_/2;
+//            float f = maxDy + roiM_/2;
+//            float g = lastX + roiM_/2;
+//            float h = lastY + roiM_/2;
 //            // cast 30mx30m into 900x900 scale
-//            int aa = floor(a*picScale);
-//            int bb = floor(b*picScale);
-//            int cc = floor(c*picScale);
-//            int dd = floor(d*picScale);
-//            int ee = floor(e*picScale);
-//            int ff = floor(f*picScale);
-//            int gg = floor(g*picScale);
-//            int hh = floor(h*picScale);
+//            int aa = floor(a*picScale_);
+//            int bb = floor(b*picScale_);
+//            int cc = floor(c*picScale_);
+//            int dd = floor(d*picScale_);
+//            int ee = floor(e*picScale_);
+//            int ff = floor(f*picScale_);
+//            int gg = floor(g*picScale_);
+//            int hh = floor(h*picScale_);
 //            // cast into image coordinate
 //            int aaa = aa;
-//            int bbb = picScale*roiM - bb;
+//            int bbb = picScale_*roiM_ - bb;
 //            int ccc = cc;
-//            int ddd = picScale*roiM - dd;
+//            int ddd = picScale_*roiM_ - dd;
 //            int eee = ee;
-//            int fff = picScale*roiM - ff;
+//            int fff = picScale_*roiM_ - ff;
 //            int ggg = gg;
-//            int hhh = picScale*roiM - hh;
+//            int hhh = picScale_*roiM_ - hh;
 //            // offset so that the object would be locate at the center
 //            int aaaa = aaa + offsetInitX;
 //            int bbbb = bbb + offsetInitY;
@@ -316,25 +334,19 @@ void getBoundingBox(vector<PointCloud<PointXYZ>>  clusteredPoints,
                 PointXYZ o;
                 o.x = pcPoints[pclP].x;
                 o.y = pcPoints[pclP].y;
-                if(pclH == 0) o.z = -sensorHeight;
+                if(pclH == 0) o.z = -sensorHeight_;
                 else o.z = maxZ;
                 oneBbox.push_back(o);
             }
         }
         bbPoints.push_back(oneBbox);
-//        clustered2D[iCluster] = m;
     }
 }
 
-vector<PointCloud<PointXYZ>> boxFitting(PointCloud<PointXYZ>::Ptr elevatedCloud,
-                array<array<int, numGrid>, numGrid> cartesianData,
-                int numCluster){
-    vector<PointCloud<PointXYZ>>  clusteredPoints(numCluster);
-    getClusteredPoints(elevatedCloud, cartesianData, clusteredPoints);
+vector<PointCloud<PointXYZ>> BoxFitting::getBBoxes(vector<PointCloud<PointXYZRGB>> clusteredPoints,
+                                                   double timestamp){
+    // fitting bbox by using minAreaRect or l-shape
     vector<PointCloud<PointXYZ>>  bbPoints;
-    getBoundingBox(clusteredPoints, bbPoints);
+    getBoundingBox(clusteredPoints, timestamp, bbPoints);
     return bbPoints;
-//    vector<vector<float>>  bBoxes(numCluster,  vector<float>(6));
-//
-//    return bBoxes;
 }
