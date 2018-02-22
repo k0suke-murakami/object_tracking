@@ -13,16 +13,22 @@
 #include <assert.h>
 
 #include "ground_removal.h"
+#include "gaus_blur.h"
 
 using namespace std;
 
-double gauss(double sigma, double x) {
+
+GaussSmooth::GaussSmooth(){
+
+}
+
+double GaussSmooth::gauss(const double sigma, const double x) {
     double expVal = -1 * (pow(x, 2) / pow(2 * sigma, 2));
     double divider = sqrt(2 * M_PI * pow(sigma, 2));
     return (1 / divider) * exp(expVal);
 }
 
-std::vector<double> gaussKernel(int samples, double sigma) {
+std::vector<double> GaussSmooth::gaussKernel(const int samples, const double sigma) {
     std::vector<double> kernel(samples);
     double mean = samples/2;
     double sum = 0.0; // For accumulating the kernel values
@@ -32,23 +38,18 @@ std::vector<double> gaussKernel(int samples, double sigma) {
         sum += kernel[x];
     }
 
-// Normalize the kernel
+    // Normalize the kernel
     for (int x = 0; x < samples; ++x){
         kernel[x] /= sum;
     }
-
-    // std::cout << "The kernel contains " << kernel.size() << " entries:";
-    for (auto it = kernel.begin(); it != kernel.end(); ++it) {
-        // std::cout << ' ' << *it;
-    }
-    // std::cout << std::endl;
+    
     assert(kernel.size() == samples);
 
     return kernel;
 }
 
-void gaussSmoothen(std::array<Cell, numBin>& values, double sigma, int samples) {
-    auto kernel = gaussKernel(samples, sigma);
+void GaussSmooth::gaussSmoothen(std::array<Cell, numBin_>& values, const double sigma, const int samples) {
+    std::vector<double> kernel = gaussKernel(samples, sigma);
     int sampleSide = samples / 2;
     unsigned long ubound = values.size();
     // applying gaussian kernel with zero padding

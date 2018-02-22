@@ -9,6 +9,8 @@ set(CMAKE_CXX_STANDARD 11)
 find_package(catkin REQUIRED COMPONENTS
   pcl_conversions
   pcl_ros
+  jsk_recognition_msgs
+  jsk_rviz_plugins
   roscpp
   sensor_msgs
 )
@@ -46,7 +48,10 @@ include_directories(
 
 #set(SOURCE_FILES src/main.cpp src/gaus_blur.cpp src/gaus_blur.h src/ground_removal.cpp src/ground_removal.h src/component_clustering.cpp src/component_clustering.h src/box_fitting.cpp src/box_fitting.cpp src/ukf.cpp)
 
-set(SOURCE_FILES src/main.cpp src/gaus_blur.cpp src/gaus_blur.h src/ground_removal.cpp src/ground_removal.h src/component_clustering.cpp src/component_clustering.h src/box_fitting.cpp src/box_fitting.cpp src/ukf.cpp src/ukf.h src/imm_ukf_jpda.cpp src/imm_ukf_jpda.h)
+
+#set(SOURCE_FILES src/main.cpp src/gaus_blur.cpp src/gaus_blur.h src/ground_removal.cpp src/ground_removal.h src/component_clustering.cpp src/component_clustering.h src/box_fitting.cpp src/box_fitting.cpp src/ukf.cpp src/ukf.h src/imm_ukf_jpda.cpp src/imm_ukf_jpda.h src/visualization.cpp src/visualization.h)
+
+set(SOURCE_FILES src/lidar_tracker_node.cpp src/lidar_tracker_node.h src/gaus_blur.cpp src/gaus_blur.h src/ground_removal.cpp src/ground_removal.h src/component_clustering.cpp src/component_clustering.h src/box_fitting.cpp src/box_fitting.cpp src/ukf.cpp src/ukf.h src/imm_ukf_jpda.cpp src/imm_ukf_jpda.h src/visualization.cpp src/visualization.h)
 add_executable(main ${SOURCE_FILES})
 
 

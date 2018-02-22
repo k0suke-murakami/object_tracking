@@ -86,13 +86,14 @@ UKF::UKF() {
     // std_ctrv_yawdd_ = 2;
     // std_cv_yawdd_   = 2;
     // std_rm_yawdd_ = 3;
+
+
     //------------------
     // Laser measurement noise standard deviation position1 in m
     std_laspx_ = 0.15;
-    // std_laspx_ = 0.3;
     // Laser measurement noise standard deviation position2 in m
     std_laspy_ = 0.15;
-    // std_laspy_ = 0.3;
+    
 
     // initially set to false, set to true in first call of ProcessMeasurement
     is_initialized_ = false;
@@ -111,9 +112,6 @@ UKF::UKF() {
 
     // Augmented sigma point spreading parameter
     lambda_aug_ = 3 - n_aug_;
-
-    // predicted sigma points matrix
-//    Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);
 
     // predicted sigma points matrix
     Xsig_pred_cv_ = MatrixXd(n_x_, 2 * n_aug_ + 1);
@@ -153,17 +151,6 @@ UKF::UKF() {
     p3_.push_back(0.05);
     p3_.push_back(0.9);
 
-    // p1_.push_back(0.8);
-    // p1_.push_back(0.1);
-    // p1_.push_back(0.1);
-
-    // p2_.push_back(0.8);
-    // p2_.push_back(0.1);
-    // p2_.push_back(0.1);
-
-    // p3_.push_back(0.1);
-    // p3_.push_back(0.1);
-    // p3_.push_back(0.8);
 
     modeMatchProbCV2CV_ = 0;
     modeMatchProbCTRV2CV_ = 0;
@@ -189,8 +176,7 @@ UKF::UKF() {
     zPredCTRVr_ =  VectorXd(3);
     zPredRMr_ =  VectorXd(3);
 
-//    lS_ = MatrixXd(2,2);
-//    rS_ = MatrixXd(3,3);
+
     lS_cv_   = MatrixXd(2,2);
     lS_ctrv_ = MatrixXd(2,2);
     lS_rm_   = MatrixXd(2,2);
@@ -203,15 +189,7 @@ UKF::UKF() {
     K_ctrv_ = MatrixXd(2,2);
     K_rm_   = MatrixXd(2,2);
 
-//    NISvals_laser_cv_.open( "../NISvals_laser_cv.txt", ios::out );
-//    NISvals_laser_ctrv_.open( "../NISvals_laser_ctrv.txt", ios::out );
-//    NISvals_laser_rm_.open( "../NISvals_laser_rm.txt", ios::out );
-//    // Check for errors opening the files
-//    if( !NISvals_laser_cv_.is_open() )
-//    {
-//        cout << "Error opening NISvals_laser.txt" << endl;
-//        exit(1);
-//    }
+
 
     gammaG_ = 9.21;
     pD_     = 0.9;
@@ -232,46 +210,18 @@ UKF::UKF() {
     initMeas_ = VectorXd(2);
     distFromInit_ = 0;
 
-    // local2local yaw (t-1 to t)
-    // local2localYaw_ = 0;
-
     x_merge_yaw_ = 0;
-
-
-
-    // globalYaw_ = 0;
-    // anchorTF_  = VectorXd(2);
-
-    //    double gammaG = 4.61; // 90%
-//    double gammaG = 5.99; // 95%
-//    double gammaG = 7.38; // 97.5%
-//    gammaG_ = 9.21; // 99% global variable
 }
 
 UKF::~UKF() {
-//    NISvals_laser_cv_.close();
-//    NISvals_laser_ctrv_.close();
-//    NISvals_laser_rm_.close();
+
 }
 
-void UKF::Initialize(VectorXd z, double timestamp) {
+void UKF::Initialize(const VectorXd z, const double timestamp) {
     // first measurement
-    // x_merge_ << 1, 1, 1, 1, 0.1;
     x_merge_ << 1, 1, 0, 0, 0.1;
 
     // init covariance matrix
-    // P_merge_ <<  0.5,    0, 0, 0, 0,
-    //         0,  0.5, 0, 0, 0,
-    //         0,    0, 1, 0, 0,
-    //         0,    0, 0, 1, 0,
-    //         0,    0, 0, 0, 1;
-
-    // P_merge_ <<   0.5,    0, 0, 0, 0,
-    //                 0,  0.5, 0, 0, 0,
-    //                 0,    0, 3, 0, 0,
-    //                 0,    0, 0, 1, 0,
-    //                 0,    0, 0, 0, 1;
-
     P_merge_ <<   0.5,    0, 0, 0, 0,
                     0,  0.5, 0, 0, 0,
                     0,    0, 3, 0, 0,
@@ -305,12 +255,7 @@ void UKF::Initialize(VectorXd z, double timestamp) {
     x_cv_ = x_ctrv_ = x_rm_ = x_merge_;
     P_cv_ = P_ctrv_ = P_rm_ = P_merge_;
 
-    // lS_cv_   <<  2, 0,
-    //              0, 2;
-    // lS_ctrv_ <<  2, 0,
-    //              0, 2;
-    // lS_rm_   <<  2, 0,
-    //              0, 2;
+   
     lS_cv_   <<  1, 0,
                  0, 1;
     lS_ctrv_ <<  1, 0,
@@ -318,17 +263,13 @@ void UKF::Initialize(VectorXd z, double timestamp) {
     lS_rm_   <<  1, 0,
                  0, 1;
 
-    // anchorTF_ << 0, 0;
 }
 
-double UKF::CalculateGauss(VectorXd z, int sensorInd, int modelInd){
+double UKF::CalculateGauss(VectorXd z, const int sensorInd, const int modelInd){
     if(sensorInd == 0){
         if      (modelInd == 0) {
             double  detS = fabs(lS_cv_.determinant());
             MatrixXd inS = lS_cv_.inverse();
-//            cout << z << endl << zPredCVl_ << endl;
-//            VectorXd s = (z-zPredCVl_).transpose();
-//            double a = ((z-zPredCVl_).transpose()*inS*(z-zPredCVl_));
             return exp(-1*(((z-zPredCVl_).transpose()*inS*(z-zPredCVl_))(0))/2)/sqrt(((2*M_PI)*(2*M_PI)*detS));
         }
         else if (modelInd == 1) {
@@ -381,7 +322,7 @@ double UKF::CalculateGauss(VectorXd z, int sensorInd, int modelInd){
     }
 }
 
-void UKF::UpdateModeProb(vector<double> lambdaVec){
+void UKF::UpdateModeProb(const vector<double> lambdaVec){
     double cvGauss   = lambdaVec[0];
     double ctrvGauss = lambdaVec[1];
     double rmGauss   = lambdaVec[2];
@@ -389,6 +330,7 @@ void UKF::UpdateModeProb(vector<double> lambdaVec){
     modeProbCV_   = (cvGauss  *modeProbCV_)  /sumGauss;
     modeProbCTRV_ = (ctrvGauss*modeProbCTRV_)/sumGauss;
     modeProbRM_   = (rmGauss  *modeProbRM_)  /sumGauss;
+    // prevent each prob from becoming 0
     if(fabs(modeProbCV_)   < 0.0001) modeProbCV_   = 0.0001;
     if(fabs(modeProbCTRV_) < 0.0001) modeProbCTRV_ = 0.0001;
     if(fabs(modeProbRM_)   < 0.0001) modeProbRM_   = 0.0001;
@@ -417,18 +359,12 @@ void UKF::UpdateYawWithHighProb(){
 }
 
 void UKF::MergeEstimationAndCovariance(){
-    // cout << endl<<"merge x cv" <<endl << x_cv_ <<endl;
-    // cout << endl<<"merge x ctrv" <<endl << x_ctrv_ <<endl;
-    // cout << endl<<"merge x rm" <<endl << x_rm_ <<endl;
-
-
     x_merge_ = modeProbCV_*x_cv_ + modeProbCTRV_ *x_ctrv_ + modeProbRM_ * x_rm_;
     while (x_merge_(3)> M_PI) x_merge_(3) -= 2.*M_PI;
     while (x_merge_(3)<-M_PI) x_merge_(3) += 2.*M_PI;
 
     // not interacting yaw(-pi ~ pi)
     UpdateYawWithHighProb();
-    // cout << "merged yaw " << x_merge_yaw_<< endl;
 
     P_merge_ = modeProbCV_  *(P_cv_   +(x_cv_   - x_merge_)*(x_cv_   - x_merge_).transpose()) +
                modeProbCTRV_*(P_ctrv_ +(x_ctrv_ - x_merge_)*(x_ctrv_ - x_merge_).transpose())+
@@ -472,13 +408,6 @@ void UKF::Interaction() {
     x_ctrv_(3) = x_pre_ctrv(3);
     x_rm_(3)   = x_pre_rm(3);
 
-//    cout<< "cv x state before interaction: "  <<endl<<x_pre_cv<<endl;
-//    cout<< "ctrv x state before interaction: "<<endl<<x_pre_ctrv<<endl;
-//    cout<< "rm x state before interaction: "  <<endl<<x_pre_rm<<endl<<endl;
-//    cout<< "rm match prob: "<< endl << modeMatchProbCV2RM_ << " "<<modeMatchProbCTRV2RM_<<" "<<modeMatchProbRM2RM_<<endl<<endl;
-//    cout<< "cv x state after interaction: "  <<endl<<x_cv_<<endl;
-//    cout<< "ctrv x state after interaction: "<<endl<<x_ctrv_<<endl;
-//    cout<< "rm x state after interaction: "  <<endl<<x_rm_<<endl<<endl;
     // normalizing angle
     while (x_cv_(3)  > M_PI) x_cv_(3)   -= 2.*M_PI;
     while (x_cv_(3)  <-M_PI) x_cv_(3)   += 2.*M_PI;
@@ -504,7 +433,7 @@ void UKF::Interaction() {
 * @param {MeasurementPackage} meas_package The latest measurement data of
 * either radar or laser.
 */
-void UKF::ProcessIMMUKF(double dt) {
+void UKF::PredictionIMMUKF(const double dt) {
     /*****************************************************************************
     *  IMM Mixing and Interaction
     ****************************************************************************/
@@ -526,7 +455,7 @@ void UKF::ProcessIMMUKF(double dt) {
 
 }
 
-void UKF::PostProcessIMMUKF(vector<double> lambdaVec) {
+void UKF::PostProcessIMMUKF(const vector<double> lambdaVec) {
     /*****************************************************************************
     *  IMM Merge Step
     ****************************************************************************/
@@ -536,8 +465,8 @@ void UKF::PostProcessIMMUKF(vector<double> lambdaVec) {
 
 
 
-void UKF::Ctrv(double p_x, double p_y, double v, double yaw, double yawd, double nu_a, double nu_yawdd,
-               double delta_t, vector<double>&state) {
+void UKF::Ctrv(const double p_x, const double p_y, const double v, const double yaw, const double yawd, 
+               const double nu_a, const double nu_yawdd, const double delta_t, vector<double>&state) {
     //predicted state values
     double px_p, py_p;
 
@@ -570,8 +499,8 @@ void UKF::Ctrv(double p_x, double p_y, double v, double yaw, double yawd, double
     state[4] = yawd_p;
 }
 
-void UKF::Cv(double p_x, double p_y, double v, double yaw, double yawd, double nu_a, double nu_yawdd,
-             double delta_t, vector<double>&state) {
+void UKF::Cv(const double p_x, const double p_y, const double v, const double yaw, const double yawd, 
+               const double nu_a, const double nu_yawdd, const double delta_t, vector<double>&state) {
     //predicted state values
     double px_p = p_x + v*cos(yaw)*delta_t;
     double py_p = p_y + v*sin(yaw)*delta_t;
@@ -599,15 +528,8 @@ void UKF::Cv(double p_x, double p_y, double v, double yaw, double yawd, double n
 }
 
 
-void UKF::randomMotion(double p_x, double p_y, double v, double yaw, double yawd, double nu_a, double nu_yawdd,
-                       double delta_t, vector<double>&state) {
-    // double px_p   = p_x + 0.5 * nu_a * delta_t * delta_t * cos(yaw);
-    // double py_p   = p_y + 0.5 * nu_a * delta_t * delta_t * sin(yaw);
-    // double v_p    = v   + nu_a*delta_t;
-
-    // double yaw_p  = yaw  + 0.5*nu_yawdd*delta_t*delta_t;
-    // double yawd_p = yawd + nu_yawdd*delta_t;
-
+void UKF::randomMotion(const double p_x, const double p_y, const double v, const double yaw, const double yawd, 
+               const double nu_a, const double nu_yawdd, const double delta_t, vector<double>&state) {
     double px_p   = p_x;
     double py_p   = p_y;
     double v_p    = v;
@@ -627,7 +549,7 @@ void UKF::randomMotion(double p_x, double p_y, double v, double yaw, double yawd
 * @param {double} delta_t the change in time (in seconds) between the last
 * measurement and this one.
 */
-void UKF::Prediction(double delta_t, int modelInd) {
+void UKF::Prediction(const double delta_t, const int modelInd) {
     /*****************************************************************************
    *  Initialize model parameters
    ****************************************************************************/
@@ -691,14 +613,11 @@ void UKF::Prediction(double delta_t, int modelInd) {
 
     //create augmented sigma points
     Xsig_aug.col(0) = x_aug;
-//    if(modelInd == 2) cout<< "x state: "<<endl<<x_rm_<<endl;
-//    if(modelInd == 2) cout<< "aug x state: "<<endl<<x_aug<<endl;
     for (int i = 0; i< n_aug_; i++)
     {
         Xsig_aug.col(i + 1) = x_aug + sqrt(lambda_aug_ + n_aug_) * L.col(i);
         Xsig_aug.col(i + 1 + n_aug_) = x_aug - sqrt(lambda_aug_ + n_aug_) * L.col(i);
     }
-//    if(modelInd == 2) cout<< "aug sigma x points: "<<endl<<Xsig_aug<<endl;
 
     /*****************************************************************************
     *  Predict Sigma Points
@@ -727,7 +646,7 @@ void UKF::Prediction(double delta_t, int modelInd) {
         Xsig_pred_(3, i) = state[3];
         Xsig_pred_(4, i) = state[4];
     }
-//    if(modelInd == 2) cout<< "predicted sigma x points: "<<endl<<Xsig_pred_<<endl;
+
 
     /*****************************************************************************
     *  Convert Predicted Sigma Points to Mean/Covariance
@@ -775,7 +694,7 @@ void UKF::Prediction(double delta_t, int modelInd) {
 * Updates the state and the state covariance matrix using a laser measurement.
 * @param {MeasurementPackage} meas_package
 */
-void UKF::UpdateLidar(int modelInd) {
+void UKF::UpdateLidar(const int modelInd) {
     // TODO refactoring
     /*****************************************************************************
    *  Initialize model parameters
@@ -799,9 +718,6 @@ void UKF::UpdateLidar(int modelInd) {
         Xsig_pred = Xsig_pred_rm_;
     }
 
-//    count_++;
-    //extract measurement as VectorXd
-    // VectorXd z = meas_package.raw_measurements_;
     //set measurement dimension, lidar can measure p_x and p_y
     int n_z = 2;
 
@@ -863,15 +779,6 @@ void UKF::UpdateLidar(int modelInd) {
     //Kalman gain K;
     MatrixXd K = Tc * S.inverse();
 
-    // //residual
-    // VectorXd z_diff = z - z_pred;
-
-    // //update state mean and covariance matrix
-    // x = x + K * z_diff;
-    // P = P - K*S*K.transpose();
-
-    // while (x(3)> M_PI) x(3) -= 2.*M_PI;
-    // while (x(3)<-M_PI) x(3) += 2.*M_PI;
     /*****************************************************************************
     *  Update model parameters
     ****************************************************************************/
@@ -901,7 +808,7 @@ void UKF::UpdateLidar(int modelInd) {
     }
 }
 
-void UKF::PDAupdate(vector<VectorXd> z, int modelInd){
+void UKF::PDAupdate(const vector<VectorXd> z, const int modelInd){
     VectorXd z_pred;
     MatrixXd S, x_, P_, K;
     if(modelInd == 0){

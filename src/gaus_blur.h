@@ -5,17 +5,21 @@
 
 
 
-#ifndef EXAMPLE_GAUS_BLUR_H
-#define EXAMPLE_GAUS_BLUR_H
+#ifndef OBJECT_TRACKING_GAUS_BLUR_H
+#define OBJECT_TRACKING_BLUR_H
 
 #include <vector>
 #include <array>
 #include "ground_removal.h"
 
-double gauss(double sigma, double x);
+class GaussSmooth{
+private:
+	double gauss(const double sigma, const double x);
 
-std::vector<double> gaussKernel(int samples, double sigma);
+	std::vector<double> gaussKernel(const int samples, const double sigma);
+public:
+	GaussSmooth();
+	void gaussSmoothen(std::array<Cell, numBin_>& values, const double sigma, const int samples);
+};
 
-void gaussSmoothen(std::array<Cell, numBin>& values, double sigma, int samples);
-
-#endif //TEST1_GAUS_BLUR_H
+#endif //OBJECT_TRACKING_GAUS_BLUR_H

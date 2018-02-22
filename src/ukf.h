@@ -1,5 +1,5 @@
-#ifndef MY_PCL_TUTORIAL_UKF_H
-#define MY_PCL_TUTORIAL_UKF_H
+#ifndef OBJECT_TRACKING_UKF_H
+#define OBJECT_TRACKING_UKF_H
 // #include "measurement_package.h"
 #include "Eigen/Dense"
 #include <vector>
@@ -211,11 +211,11 @@ public:
 
     void UpdateYawWithHighProb();
 
-    void Initialize(VectorXd z, double timestamp);
+    void Initialize(const VectorXd z, const double timestamp);
 
-    double CalculateGauss(VectorXd z, int sensorInd, int modelInd);
+    double CalculateGauss(VectorXd z, const int sensorInd, const int modelInd);
 
-    void UpdateModeProb(std::vector<double> lambdaVec);
+    void UpdateModeProb(const std::vector<double> lambdaVec);
 
     void MergeEstimationAndCovariance();
 
@@ -223,37 +223,39 @@ public:
 
     void Interaction();
 
-    void MeasurementValidation(VectorXd z, std::vector<VectorXd>& meas);
+    void MeasurementValidation(const VectorXd z, std::vector<VectorXd>& meas);
 
-    void PDAupdate(std::vector<VectorXd> z, int modelInd);
+    void PDAupdate(const std::vector<VectorXd> z, const int modelInd);
 
     /**
      * ProcessMeasurement
      * @param meas_package The latest measurement data of either radar or laser
      */
-    void ProcessIMMUKF(double dt);
+    void PredictionIMMUKF(const double dt);
 
-    void PostProcessIMMUKF(std::vector<double> lambdaVec);
+    void PostProcessIMMUKF(const std::vector<double> lambdaVec);
 
 
-    void Ctrv(double p_x, double p_y, double v, double yaw, double yawd, double nu_a, double nu_yawdd, double delta_t, std::vector<double>&state);
+    void Ctrv(const double p_x, const double p_y, const double v, const double yaw, const double yawd, 
+        const double nu_a,const  double nu_yawdd, const double delta_t, std::vector<double>&state);
 
-    void Cv(double p_x, double p_y, double v, double yaw, double yawd, double nu_a, double nu_yawdd, double delta_t, std::vector<double>&state);
+    void Cv(const double p_x, const double p_y, const double v, const double yaw, const double yawd, 
+        const double nu_a,const  double nu_yawdd, const double delta_t, std::vector<double>&state);
 
-    void randomMotion(double p_x, double p_y, double v, double yaw, double yawd, double nu_a, double nu_yawdd, double delta_t, std::vector<double>&state);
-
+    void randomMotion(const double p_x, const double p_y, const double v, const double yaw, const double yawd, 
+        const double nu_a,const  double nu_yawdd, const double delta_t, std::vector<double>&state);
     /**
      * Prediction Predicts sigma points, the state, and the state covariance
      * matrix
      * @param delta_t Time between k and k+1 in s
      */
-    void Prediction(double delta_t, int modelInd);
+    void Prediction(const double delta_t, const int modelInd);
 
     /**
      * Updates the state and the state covariance matrix using a laser measurement
      * @param meas_package The measurement at k+1
      */
-    void UpdateLidar(int modelInd);
+    void UpdateLidar(const int modelInd);
 
     /**
      * Updates the state and the state covariance matrix using a radar measurement
