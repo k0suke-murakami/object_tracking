@@ -16,12 +16,14 @@ using namespace Eigen;
 
 class Tracking{
 private:
-	// bool init_= false;
-	// double timestamp_ ;
-	// double egoVelo_;
-	// double egoYaw_;
-	// double egoPreYaw_;
-	// VectorXd preMeas_;
+	bool init_;
+	double timestamp_ ;
+	double egoVelo_;
+	double egoYaw_;
+	double egoPreYaw_;
+	VectorXd preMeas_;
+	vector<UKF> targets_;
+	vector<int> trackNumVec_;
 
 	// probabilistic data association params
 	double gammaG_;//9.22; // 99%
@@ -52,7 +54,7 @@ private:
 	void associateBB(const int trackNum, const vector<VectorXd> bboxVec, UKF& target);
 	double getBboxArea(const PointCloud<PointXYZ> bBox);
 	void updateVisBoxArea(UKF& target, const VectorXd dtCP);
-	void updateBoxYaw(UKF& target, const VectorXd cp, const double bestDiffYaw, const bool isVis);
+	void updateBoxYaw(UKF& target, const VectorXd cp, const double bestDiffYaw);
 	double getBBoxYaw(const UKF target);
 	void updateBB(UKF& target);
 	double getIntersectCoef(const double vec1x, const double vec1y, const double vec2x, const double vec2y,

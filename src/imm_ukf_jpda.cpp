@@ -16,18 +16,23 @@ using namespace Eigen;
 using namespace pcl;
 
 
-//how to make them local/class variables
-bool init_= false;
-double timestamp_ ;
-double egoVelo_;
-double egoYaw_;
-double egoPreYaw_;
-VectorXd preMeas_;
-vector<UKF> targets_;
-vector<int> trackNumVec_;
+//? how to make them local/class variables
+// bool init_= false;
+// double timestamp_ ;
+// double egoVelo_;
+// double egoYaw_;
+// double egoPreYaw_;
+// VectorXd preMeas_;
+// vector<UKF> targets_;
+// vector<int> trackNumVec_;
 
 
 Tracking::Tracking(){
+    //dynamic 
+    init_ = false;
+
+
+    //params--------------------
     // probabilistic data association params
     gammaG_ = 9.22; // 99%
     pG_ = 0.99;
@@ -40,7 +45,7 @@ Tracking::Tracking(){
     distanceThres_ = 0.25;
     lifeTimeThres_ = 8;
     //bbox update params
-    bbYawChangeThres_  = 0.2; 
+    bbYawChangeThres_  = 0.3; 
     bbAreaChangeThres_ = 0.5;
 
 }
@@ -301,7 +306,6 @@ void Tracking::getRightAngleBBox(const vector<double> nearestBbox,
     double cosTheta = (vec1x*vec2x + vec1y*vec2y)/
                         (sqrt(vec1x*vec1x+vec2x*vec2x)+sqrt(vec1y*vec1y+vec2y*vec2y));
     double theta = acos(cosTheta);
-    double sinTheta = sin(theta);
     double diffTheta = theta - M_PI/2;
 
     // cout << "p1 "<<p1x << " "<<p1y<<endl;
@@ -315,12 +319,12 @@ void Tracking::getRightAngleBBox(const vector<double> nearestBbox,
     rightAngleBBox = nearestBbox;
     if(abs(diffTheta) > 0.1){
 
-        cout << "p1 "<<p1x << " "<<p1y<<endl;
-        cout << "p2 "<<p2x << " "<<p2y<<endl;
-        cout << "p3 "<<p3x << " "<<p3y<<endl;
-        cout << "p4 "<<p4x << " "<<p4y<<endl;
-        cout << "theta "<< theta << endl;
-        cout << "diffTheta "<<diffTheta<<endl;
+        // cout << "p1 "<<p1x << " "<<p1y<<endl;
+        // cout << "p2 "<<p2x << " "<<p2y<<endl;
+        // cout << "p3 "<<p3x << " "<<p3y<<endl;
+        // cout << "p4 "<<p4x << " "<<p4y<<endl;
+        // cout << "theta "<< theta << endl;
+        // cout << "diffTheta "<<diffTheta<<endl;
 
         double m1 = vec1y/vec1x;
         double b1 = p3y - m1 * p3x;
@@ -332,17 +336,7 @@ void Tracking::getRightAngleBBox(const vector<double> nearestBbox,
 
         double deltaX = x - p2x;
         double deltaY = y - p2y;
-        // double rotateVec2x = cos(diffTheta) *vec2x - sin(diffTheta)*vec2y;
-        // double rotateVec2y = sin(diffTheta) *vec2x + cos(diffTheta)*vec2y;
-
-        // double newCosTheta = (vec1x*rotateVec2x + vec1y*rotateVec2y )/
-        //                 (sqrt(vec1x*vec1x+rotateVec2x*rotateVec2x)+sqrt(vec1y*vec1y+rotateVec2y *rotateVec2y));
-        // double newTheta = acos(newCosTheta);
-        // cout << "correction ----------------------------------------------------"<<endl;
-        // cout << "rotatevec " << rotateVec2x << " "<< rotateVec2y << endl;
-        // cout << "new cos theta "<< newCosTheta << endl;
-        // cout << "check right angle "<<newTheta<<endl;
-        // assert(abs(newTheta - M_PI/2) < 0.1);
+        
 
         rightAngleBBox[6] = x; 
         rightAngleBBox[7] = y;
@@ -441,27 +435,15 @@ void Tracking::updateVisBoxArea(UKF& target, const VectorXd dtCP){
 
 }
 
-void Tracking::updateBoxYaw(UKF& target, const VectorXd cp,
-                            const double bestDiffYaw, const bool isVis){
-    // cout << "calling yaw update"<<endl;
-    // cout << "before convert "<< target.BBox_[0].x << " "<<target.BBox_[0].y<<endl;
+void Tracking::updateBoxYaw(UKF& target, const VectorXd cp, const double diffYaw){
+    
     for(int i = 0; i < target.BBox_.size(); i++){
-        if(isVis){
-            // rotate around cp
-            double preX = target.BBox_[i].x;
-            double preY = target.BBox_[i].y;
-            target.BBox_[i].x = cos(bestDiffYaw)*(preX - cp(0)) - sin(bestDiffYaw)*(preY - cp(1)) + cp(0);
-            target.BBox_[i].y = sin(bestDiffYaw)*(preX - cp(0)) + cos(bestDiffYaw)*(preY - cp(1)) + cp(1);
-        }
-        else{
-            // rotate around cp
-            double preX = target.bestBBox_[i].x;
-            double preY = target.bestBBox_[i].y;
-            target.bestBBox_[i].x = cos(bestDiffYaw)*(preX - cp(0)) - sin(bestDiffYaw)*(preY - cp(1)) + cp(0);
-            target.bestBBox_[i].y = sin(bestDiffYaw)*(preX - cp(0)) + cos(bestDiffYaw)*(preY - cp(1)) + cp(1);   
-        }
+        // rotate around cp
+        double preX = target.BBox_[i].x;
+        double preY = target.BBox_[i].y;
+        target.BBox_[i].x = cos(diffYaw)*(preX - cp(0)) - sin(diffYaw)*(preY - cp(1)) + cp(0);
+        target.BBox_[i].y = sin(diffYaw)*(preX - cp(0)) + cos(diffYaw)*(preY - cp(1)) + cp(1);
     }
-    // cout << "after convert "<< target.BBox_[0].x << " "<<target.BBox_[0].y<<endl;
 }
 
 
@@ -521,73 +503,29 @@ void Tracking::updateBB(UKF& target){
 
     // start updating parameters
     double deltaArea = area - bestArea;
-    // cout << "area " <<area<<endl; 
-    // cout << "bestbbox "<< bestArea<<endl;
 
-    // when the delta area is under 0, keep best area
+    // when the delta area is under 0, keep best area and relocate(slide) it for current cp
     if( deltaArea < 0 ){
         updateVisBoxArea(target, dtCP);
+        // for mergeSegmentation, area comparison
+        target.bb_area_ = bestArea;
     }
     else if(deltaArea > 0){
         target.bestBBox_ = target.BBox_;
-        // target.bestYaw_  = yaw;
+        // for mergeSegmentation, area comparison
+        target.bb_area_  = area;
     }
-    // cout <<"after transform " <<getBboxArea(target.BBox_)<<endl;
 
-
-    // yaw = getBBoxYaw(target);
     double currentYaw  = getBBoxYaw(target);
-    double DiffYaw = yaw - currentYaw; 
-    // double DiffYaw = currentYaw - yaw; 
-    // double bestDiffYaw = target.bestYaw_ - yaw; 
-    // cout << "box yaw "<< yaw<<endl;
-    // cout << "current yaw "<< currentYaw<<endl;
-    // cout << "diff yaw "<< DiffYaw <<endl;
-    // bestDiffYaw = -1 *bestDiffYaw;
+    double diffYaw = yaw - currentYaw;
+    
+    cout << "diff yaw: "<< diffYaw<< endl;
 
-
-
-    //when the diff yaw is out of range, keep the previous yaw
-    if(abs(DiffYaw) > bbYawChangeThres_){
-        // updateVisBoxYaw(target, cp, bestDiffYaw);
+    // diffYaw is within the threshold, apply the diffYaw chamge
+    if(abs(diffYaw) < 0.01 && abs(diffYaw) > bbYawChangeThres_){
+        updateBoxYaw(target, cp, diffYaw);
     }
-    //when the diff is acceptable, update best yaw
-    else if(abs(DiffYaw) < bbYawChangeThres_){
-        bool isVis = true;
-        updateBoxYaw(target, cp, DiffYaw, isVis);
-        isVis = false;
-        updateBoxYaw(target, cp, DiffYaw, isVis);
-
-        double afterYaw  = getBBoxYaw(target);
-        // cout << "box yaw after "<< afterYaw<<endl;
-        // assert(abs(yaw -getBBoxYaw(target)) < 0.01 );
-        target.bestYaw_  = yaw;
-    }
-
-    // cout << "print final yaw "<< getBBoxYaw(target)<<endl;
-    // if( deltaArea < 0 && abs(bestDiffYaw) > bbYawChangeThres_){
-    //     updateVisBoxArea(target, dtCP);
-    // }
-    // else if(deltaArea < 0 && abs(bestDiffYaw) < bbYawChangeThres_){
-    //     updateVisBoxArea(target, dtCP);
-    //     updateVisBoxYaw(target, cp, bestDiffYaw);
-    //     target.bestYaw_  = yaw;
-    // }
-    // else if(deltaArea > 0 && abs(bestDiffYaw) < bbYawChangeThres_){
-    //     updateVisBoxYaw(target, cp, bestDiffYaw);
-    //     target.bestBBox_ = target.BBox_;
-    //     target.bestYaw_  = yaw;
-    // }
-    // // else if(deltaArea > 0 && deltaArea < bbAreaChangeThres_&&abs(bestDiffYaw) > bbYawChangeThres_){
-    // else if(deltaArea > 0 && deltaArea < bbAreaChangeThres_&&abs(bestDiffYaw) > bbYawChangeThres_){
-    //     // updateVisBoxArea(target, dtCP);
-    //     target.bestBBox_ = target.BBox_;
-    // }
-
 }
-
-// intersectM = ((p1.x - p2.x) * (p3.y - p1.y) + (p1.y - p2.y) * (p1.x - p3.x)) * _
-//                  ((p1.x - p2.x) * (p4.y - p1.y) + (p1.y - p2.y) * (p1.x - p4.x))
 
 double Tracking::getIntersectCoef(const double vec1x, const double vec1y, const double vec2x, const double vec2y,
                                   const double px, const double py, const double cpx, const double cpy){
@@ -615,18 +553,23 @@ void Tracking::mergeOverSegmentation(const vector<UKF> targets){
             double cp2y  = (vec1y+vec4y+vec3y)/3;
             for (int j = 0; j < targets.size(); j++){
                 if(i == j) continue;
-                double px = targets[j].x_merge_(0);
-                double py = targets[j].x_merge_(1);
-                double cross1 = getIntersectCoef(vec1x, vec1y, vec2x, vec2y, px, py, cp1x, cp1y);
-                double cross2 = getIntersectCoef(vec1x, vec1y, vec3x, vec3y, px, py, cp1x, cp1y);
-                double cross3 = getIntersectCoef(vec3x, vec3y, vec2x, vec2y, px, py, cp1x, cp1y);
-                double cross4 = getIntersectCoef(vec1x, vec1y, vec4x, vec4y, px, py, cp2x, cp2y);
-                double cross5 = getIntersectCoef(vec1x, vec1y, vec3x, vec3y, px, py, cp2x, cp2y);
-                double cross6 = getIntersectCoef(vec3x, vec3y, vec4x, vec4y, px, py, cp2x, cp2y);
-                if((cross1 > 0 && cross2>0&&cross3>0)||(cross4>0 && cross5 > 0 && cross6>0)){
-                    // cout << "merrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrge"<<endl;
-                    trackNumVec_[i] = 5;
-                    trackNumVec_[j] = 0;
+                // make sure that merged area(i) is larger than compared area(j)
+                if(targets_[i].bb_area_ < targets_[j].bb_area_){
+                    double px = targets[j].x_merge_(0);
+                    double py = targets[j].x_merge_(1);
+                    // check if px, py are in triangle vec1, vec2, vec3
+                    double cross1 = getIntersectCoef(vec1x, vec1y, vec2x, vec2y, px, py, cp1x, cp1y);
+                    double cross2 = getIntersectCoef(vec1x, vec1y, vec3x, vec3y, px, py, cp1x, cp1y);
+                    double cross3 = getIntersectCoef(vec3x, vec3y, vec2x, vec2y, px, py, cp1x, cp1y);
+                    // check if px, py are in triangle vec1, vec3, vec4
+                    double cross4 = getIntersectCoef(vec1x, vec1y, vec4x, vec4y, px, py, cp2x, cp2y);
+                    double cross5 = getIntersectCoef(vec1x, vec1y, vec3x, vec3y, px, py, cp2x, cp2y);
+                    double cross6 = getIntersectCoef(vec3x, vec3y, vec4x, vec4y, px, py, cp2x, cp2y);
+                    // check if inside or not
+                    if((cross1 > 0 && cross2>0&&cross3>0)||(cross4>0 && cross5 > 0 && cross6>0)){
+                        trackNumVec_[i] = 5;
+                        trackNumVec_[j] = 0;
+                    }
                 }
             }
         }
@@ -639,8 +582,6 @@ void Tracking::immUkfPdaf(const vector<PointCloud<PointXYZ>> bBoxes, const doubl
                      vector<int>& trackManage, vector<bool>& isStaticVec,
                      vector<bool>& isVisVec, vector<PointCloud<PointXYZ>>& visBBs,
                      vector<int>& visNumVec){
-
-    // countIt ++;
 
 	// convert from bboxes to cx,cy + each points
     // calculate cx, cy, http://imagingsolution.blog107.fc2.com/blog-entry-137.html
@@ -708,9 +649,10 @@ void Tracking::immUkfPdaf(const vector<PointCloud<PointXYZ>> bBoxes, const doubl
 
     assert (targets_.size() == trackNumVec_.size());
 
-    // params initialization for ukf process
+    // used for making new target with no data association
     vector<int> matchingVec(trackPoints.size()); // make 0 vector
-    double dt = (timestamp - timestamp_)/1000000.0;
+
+    double dt = (timestamp - timestamp_);
     timestamp_ = timestamp;
 
 
@@ -830,12 +772,6 @@ void Tracking::immUkfPdaf(const vector<PointCloud<PointXYZ>> bBoxes, const doubl
 	    filterPDA(targets_[i], measVec, lambdaVec);
 
 	    targets_[i].PostProcessIMMUKF(lambdaVec);
-        // TODO: might be wrong
-        double targetVelo = targets_[i].x_merge_(2);
-        targets_[i].velo_history_.push_back(targetVelo);
-        if(targets_[i].velo_history_.size() == 4) {
-            targets_[i].velo_history_.erase (targets_[i].velo_history_.begin());
-        }
     }
     // end UKF process
 
@@ -844,7 +780,7 @@ void Tracking::immUkfPdaf(const vector<PointCloud<PointXYZ>> bBoxes, const doubl
     mergeOverSegmentation(targets_);
 
 
-    // making new ukf target
+    // making new ukf target for no data association clusters
     int addedNum = 0;
     int targetNum = targets_.size();
     
@@ -867,16 +803,14 @@ void Tracking::immUkfPdaf(const vector<PointCloud<PointXYZ>> bBoxes, const doubl
     assert(targets_.size() == (addedNum + targetNum));
 
     
-    // making poitns for visualization
-    // cout << "making points for vis" <<endl;
+    // making poitns and arrows for visualization
     int targetNumCount = 0;
     for(int i = 0; i < targets_.size(); i++){
         double tx   = targets_[i].x_merge_(0);
         double ty   = targets_[i].x_merge_(1);
         double mx = targets_[i].initMeas_(0);
         double my = targets_[i].initMeas_(1);
-        // cout <<"fisrt meas "<<mx << " "<<my<<endl;
-        // cout <<"estimate "<<tx << " "<<ty<<endl;
+        
         targets_[i].distFromInit_ = sqrt((tx - mx)*(tx - mx) + (ty - my)*(ty - my));
         vector<double> cp;
         cp.push_back(tx);
@@ -914,44 +848,20 @@ void Tracking::immUkfPdaf(const vector<PointCloud<PointXYZ>> bBoxes, const doubl
         }
     }
 
-    // cout << "after making points for vis" << endl;
-
     // static dynamic classification
-    // cout <<"classification"<<endl;
     for (int i = 0; i < trackNumVec_.size(); i++){
         // once target is static, it is dtatic until lost
         if(targets_[i].isStatic_ ){
             isStaticVec[i] = true;
-            // if(trackNumVec_[i] != 0){
-            //     cout << "static"<<endl;
-            //     cout << "print "<<targets_[i].x_merge_(0)<< " "<< targets_[i].x_merge_(1)<< " "<< targets_[i].distFromInit_ <<endl;
-            //     cout << "mode prob "<< " "<<targets_[i].modeProbCV_ << " "<<targets_[i].modeProbCTRV_ << " "<< targets_[i].modeProbRM_ << endl;
-            // }
-            // continue;
         } 
-
-        // if(trackNumVec_[i] != 0){
-        //     cout << "dynamic"<<endl;
-        //     cout << "print "<<targets_[i].x_merge_(0)<< " "<< targets_[i].x_merge_(1)<< " "<< targets_[i].distFromInit_ <<endl;
-        //     cout << "mode prob "<< " "<<targets_[i].modeProbCV_ << " "<<targets_[i].modeProbCTRV_ << " "<< targets_[i].modeProbRM_ << endl;
-        // }
-
        
         if(!targets_[i].isStatic_ && trackNumVec_[i] == 5 && targets_[i].lifetime_ > 8 ){
-            // assuming below 0.3 m/s for static onject
-            double distThres = 0.11 * targets_[i].lifetime_;
-            distThres = 3.0;
-            // cout << "print "<<targets_[i].x_merge_(0)<< " "<< targets_[i].x_merge_(1)<< " "<< targets_[i].distFromInit_ <<endl;
-            // cout << "mode prob "<< " "<<targets_[i].modeProbCV_ << " "<<targets_[i].modeProbCTRV_ << " "<< targets_[i].modeProbRM_ << endl;
+            double distThres = 3.0;
             if((targets_[i].distFromInit_ < distThres)&&
                     (targets_[i].modeProbRM_ > targets_[i].modeProbCV_ || 
                      targets_[i].modeProbRM_ > targets_[i].modeProbCTRV_ )){
                 isStaticVec[i] = true;
                 targets_[i].isStatic_ = true;
-                // trackNumVec_[i] = -1;
-            }
-            else{
-
             }
         }
 

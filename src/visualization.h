@@ -22,6 +22,7 @@ private:
 	VectorXd getCpFromBbox(const PointCloud<PointXYZ> bBox);
 
 public:
+	Visualization();
 	void visualizeJSKBBox(const std_msgs::Header input_header, const ros::Publisher tracked_visbb_pub,
 	 const vector<bool> isStaticVec, 
 	const vector<PointCloud<PointXYZ>> visBBs, const vector<int> visNumVec, const bool isStableBBox);

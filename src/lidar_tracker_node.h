@@ -3,6 +3,11 @@
 
 #include <tf/transform_listener.h>
 
+#include "ground_removal.h"
+#include "component_clustering.h"
+#include "box_fitting.h"
+#include "imm_ukf_jpda.h"
+#include "visualization.h"
 
 
 class LidarTracker{
@@ -20,4 +25,9 @@ private:
 	tf::TransformListener* tran_;
 	int count_;
 
+	GroundRemoval gr_;
+	ComponentClustering cc_;
+	BoxFitting bf_;
+	Tracking tr_;
+	Visualization vis_;
 };

@@ -49,44 +49,12 @@ UKF::UKF() {
     P_rm_ = MatrixXd(5, 5);
 
     // Process noise standard deviation longitudinal acceleration in m/s^2
-
-    // std_a_cv_   = 0.8;
-    // std_a_ctrv_ = 0.8;
-    // std_a_rm_   = 5;
-    // std_ctrv_yawdd_ = 0.8;
-    // std_cv_yawdd_   = 0.8;
-    // std_rm_yawdd_ = 3;
-
-
-    // std_a_cv_   = 2;
-    // std_a_ctrv_ = 2;
-    // std_a_rm_   = 5;
-    // std_ctrv_yawdd_ = 2;
-    // std_cv_yawdd_   = 2;
-    // std_rm_yawdd_ = 3;
-
     std_a_cv_   = 2;
     std_a_ctrv_ = 2;
     std_a_rm_   = 3;
     std_ctrv_yawdd_ = 2;
     std_cv_yawdd_   = 2;
     std_rm_yawdd_ = 3;
-
-    // std_a_cv_   = 3;
-    // std_a_ctrv_ = 3;
-    // std_a_rm_   = 3;
-    // std_ctrv_yawdd_ = 3;
-    // std_cv_yawdd_   = 3;
-    // std_rm_yawdd_ = 3;
-
-    // ------------- not delete here
-    // std_a_cv_   = 2;
-    // std_a_ctrv_ = 2;
-    // std_a_rm_   = 8;
-    // std_ctrv_yawdd_ = 2;
-    // std_cv_yawdd_   = 2;
-    // std_rm_yawdd_ = 3;
-
 
     //------------------
     // Laser measurement noise standard deviation position1 in m
@@ -99,7 +67,7 @@ UKF::UKF() {
     is_initialized_ = false;
 
     // time when the state is true, in us
-    time_us_ = 0.0;
+    time_ = 0.0;
 
     // state dimension
     n_x_ = 5;
@@ -125,11 +93,6 @@ UKF::UKF() {
     //create vector for weights
     weights_ = VectorXd(2 * n_aug_ + 1);
 
-    // the current NIS for radar
-    NIS_radar_ = 0.0;
-
-    // the current NIS for laser
-    NIS_laser_ = 0.0;
 
     count_ = 0;
     count_empty_ = 0;
@@ -197,7 +160,6 @@ UKF::UKF() {
 
     //track parameter
     lifetime_ = 0;
-    velo_history_;
     isStatic_ = false;
 
     //bounding box params
@@ -237,7 +199,7 @@ void UKF::Initialize(const VectorXd z, const double timestamp) {
     }
 
     // init timestamp
-    time_us_ = timestamp;
+    time_ = timestamp;
 
     x_merge_(0) = z(0);
     x_merge_(1) = z(1);
@@ -841,9 +803,6 @@ void UKF::PDAupdate(const vector<VectorXd> z, const int modelInd){
     //residual
     VectorXd z_diff = z[0] - z_pred;
 
-    //calculate NIS
-    NIS_laser_ = z_diff.transpose() * S.inverse() * z_diff;
-
     //update state mean and covariance matrix
     x_ = x_ + K * z_diff;
     P_ = P_ - K*S*K.transpose();
@@ -857,19 +816,13 @@ void UKF::PDAupdate(const vector<VectorXd> z, const int modelInd){
     if(modelInd == 0){
         x_cv_.col(0)  = x_;
         P_cv_         = P_;
-//        NISvals_laser_cv_ << NIS_laser_ << endl;
-//        cout << "cv nis: "<< NIS_laser_ << endl;
     }
     else if(modelInd == 1){
         x_ctrv_.col(0)  = x_;
         P_ctrv_         = P_;
-//        NISvals_laser_ctrv_ << NIS_laser_ << endl;
-//        cout << "ctrv nis: "<< NIS_laser_ << endl;
     }
     else{
         x_rm_.col(0)    = x_;
         P_rm_           = P_;
-//        NISvals_laser_rm_ << NIS_laser_ << endl;
-//        cout << "x rm after update: "<<endl<<x_<<endl<<endl;
     }
 }

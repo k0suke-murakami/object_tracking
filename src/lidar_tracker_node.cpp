@@ -37,16 +37,16 @@
 #include "imm_ukf_jpda.h"
 #include "visualization.h"
 
-using namespace std;
-using namespace Eigen;
-using namespace pcl;
-
-
-
 
 LidarTracker::LidarTracker(){
 	tf::TransformListener *lr (new  tf::TransformListener);
 	tran_=lr;	
+
+	GroundRemoval gr_;
+    ComponentClustering cc_;
+    BoxFitting bf_;
+    Tracking tr_;
+    Visualization vis_;
 	
 	sub_pointcloud_           = node_handle_.subscribe ("/input", 1, &LidarTracker::CloudCB, this);
 	pub_elevated_pointcloud_  = node_handle_.advertise<sensor_msgs::PointCloud2> ("/elevated_pointcloud", 1);
@@ -54,28 +54,27 @@ LidarTracker::LidarTracker(){
 	pub_jsk_bb_               = node_handle_.advertise<jsk_recognition_msgs::BoundingBoxArray>("/vis_jsk_bb", 1);
 	pub_arrow_                = node_handle_.advertise<visualization_msgs::Marker>( "/visualization_arrow", 1);
     count_ = 0;
+
 }
 
 void LidarTracker::CloudCB(const sensor_msgs::PointCloud2ConstPtr &input){
+	double timestamp  = ros::Time(input->header.stamp).toSec();
 	count_ ++;
-	cout << "Frame: "<<count_ << "----------------------------------------"<< endl;
+	std::cout << "Frame: "<<count_ << "----------------------------------------"<< std::endl;
 	//Detection start------------------------------------------
-	PointCloud<pcl::PointXYZ> cloud;
-	PointCloud<pcl::PointXYZ>::Ptr elevatedCloud (new pcl::PointCloud<pcl::PointXYZ>());
-	PointCloud<pcl::PointXYZ>::Ptr groundCloud   (new pcl::PointCloud<pcl::PointXYZ>());
+	pcl::PointCloud<pcl::PointXYZ> cloud;
+	pcl::PointCloud<pcl::PointXYZ>::Ptr elevatedCloud (new pcl::PointCloud<pcl::PointXYZ>());
+	pcl::PointCloud<pcl::PointXYZ>::Ptr groundCloud   (new pcl::PointCloud<pcl::PointXYZ>());
 
 	// Convert from ros msg to PCL::PointCloud data type
 	fromROSMsg (*input, cloud);
 
 	//process local tf point cloud, get elevatedCloud
-	GroundRemoval gr;
-	gr.groundRemove(cloud, elevatedCloud, groundCloud);
+	gr_.groundRemove(cloud, elevatedCloud, groundCloud);
 
 	// todo: using union find tree
-	// get cluster with clusterID inside cartesianData
-	ComponentClustering cc;
-	vector<PointCloud<PointXYZRGB>>  clusteredPoints = cc.getComponentClustering(elevatedCloud);
-
+	vector<pcl::PointCloud<pcl::PointXYZRGB>>  clusteredPoints = 
+	cc_.getComponentClustering(elevatedCloud);
 
 	// Convert from PCL::PointCloud to ROS data type
 	elevatedCloud->header.frame_id = cloud.header.frame_id;  // sync with pointcloud local tf
@@ -86,32 +85,27 @@ void LidarTracker::CloudCB(const sensor_msgs::PointCloud2ConstPtr &input){
 	pub_elevated_pointcloud_.publish(elevatedOutput);
 
 	//Publish the clustered data
-	//error: do not work
-	// cout<< clusteredPoints.size() << endl; 
+	// for debug
+	// pcl::PointCloud<pcl::PointXYZRGB> clusters;
 	// for(int i = 0; i < clusteredPoints.size(); i++){
-	// 	sensor_msgs::PointCloud2 clusteredOutput;
-	// 	clusteredPoints[i].header.frame_id = cloud.header.frame_id;
-	// 	cout << i<<"th "<<clusteredPoints[i].header.frame_id<<endl;
-	// 	toROSMsg(clusteredPoints[i], clusteredOutput);
-	// 	pub_clustered_pointcloud_.publish(clusteredOutput);
+	// 	clusters += clusteredPoints[i];
 	// }
-
-
-	// could be inappropriate to treat ros::Time with double
-	// error: request for member ‘toSec’ in ‘cloud.pcl::PointCloud<pcl::PointXYZ>::header.pcl::PCLHeader::stamp’, which is of non-class type ‘uint64_t {aka long unsigned int}’
-	// double timestamp  = cloud.header.stamp.toSec();
-	double timestamp  = cloud.header.stamp;
+	// clusters.header.frame_id = input->header.frame_id;
+	// sensor_msgs::PointCloud2 clusteredOutput;
+	// toROSMsg(clusters, clusteredOutput);
+	// pub_clustered_pointcloud_.publish(clusteredOutput);
 
 	// fitting clusters by minAreaRectangle or L-shape fitting
-	BoxFitting bf;
-	vector<PointCloud<PointXYZ>> bBoxes = bf.getBBoxes(clusteredPoints, timestamp);
+	// BoxFitting bf;
+	vector<pcl::PointCloud<pcl::PointXYZ>> bBoxes = bf_.getBBoxes(clusteredPoints, timestamp);
 
 	// convert pointcloud from local to global for tracking-------------------------
 
 
-	PointCloud<PointXYZ> newBox;
+	pcl::PointCloud<pcl::PointXYZ> newBox;
 	for(int i = 0; i < bBoxes.size(); i++ ){
-		bBoxes[i].header.frame_id = "velodyne";
+		
+		bBoxes[i].header.frame_id = "/velodyne";
 		pcl_ros::transformPointCloud("/world", bBoxes[i], newBox, *tran_);
 		bBoxes[i] = newBox;
 	}
@@ -121,15 +115,15 @@ void LidarTracker::CloudCB(const sensor_msgs::PointCloud2ConstPtr &input){
 
 
 	// tracking process start -------------------------
-	Tracking tracker;
-	PointCloud<PointXYZ> targetPoints;   // for visualizing tracking points
+	// Tracking tracker;
+	pcl::PointCloud<pcl::PointXYZ> targetPoints;   // for visualizing tracking points
 	vector<vector<double>> targetVandYaw;// for visualizing tracking arrows
 	vector<int> trackManage;             // for checking tracking stage number
 	vector<bool> isStaticVec;            // suggest object is static or not
 	vector<bool> isVisVec;               // suggest each tracking point is stable enogh for visualizing or not
-	vector<PointCloud<PointXYZ>> visBBs; // bounding box points for stable tracking points
+	vector<pcl::PointCloud<pcl::PointXYZ>> visBBs; // bounding box points for stable tracking points
 	vector<int> visNumVec;               // for checking tracking stage number for each visBBs 
-	tracker.immUkfPdaf(bBoxes, timestamp, targetPoints, targetVandYaw, trackManage, isStaticVec, isVisVec, visBBs, visNumVec);
+	tr_.immUkfPdaf(bBoxes, timestamp, targetPoints, targetVandYaw, trackManage, isStaticVec, isVisVec, visBBs, visNumVec);
 
 	assert(targetPoints.size() == trackManage.size());
 	assert(targetPoints.size() == targetVandYaw.size());
@@ -151,12 +145,14 @@ void LidarTracker::CloudCB(const sensor_msgs::PointCloud2ConstPtr &input){
 	// end converting
 
 	// converting from global to local tf for visualization
-	PointCloud<PointXYZ> localPoints;
+	pcl::PointCloud<pcl::PointXYZ> localPoints;
 	targetPoints.header.frame_id = "world";
 	pcl_ros::transformPointCloud("/velodyne", targetPoints, localPoints, *tran_);
 
 	tf::StampedTransform transform;
 	tran_->lookupTransform("/world", "/velodyne", ros::Time(0), transform);
+	// tran_->lookupTransform("/world", "/velodyne", input->header.stamp, transform);
+
 
 	// get yaw angle from "world" to "velodyne" for direction(arrow) visualization
 	tf::Matrix3x3 m(transform.getRotation());
@@ -165,16 +161,16 @@ void LidarTracker::CloudCB(const sensor_msgs::PointCloud2ConstPtr &input){
 	//end converting to ego tf-------------------------
 
 
-	Visualization vis;
+	// Visualization vis;
 	std_msgs::Header input_header = input->header;
 	bool isStableBBox = true;
-	vis.visualizeJSKBBox(input_header, pub_jsk_bb_, isStaticVec, 
+	vis_.visualizeJSKBBox(input_header, pub_jsk_bb_, isStaticVec, 
 	  visBBs, visNumVec, isStableBBox);
 	// bool isStableBBox = false;
-	// vis.visualizeJSKBBox(input_header, tracked_visbb_pub, isStaticVec, 
+	// vis.visualizeJSKBBox(input_header, pub_jsk_bb_, isStaticVec, 
 	//   bBoxes, visNumVec, isStableBBox);
 
-	vis.visualizeArrow(trackManage, pub_arrow_, targetPoints, localPoints, 
+	vis_.visualizeArrow(trackManage, pub_arrow_, targetPoints, localPoints, 
 	  isStaticVec, isVisVec,targetVandYaw, input_header, yaw );
 }
 

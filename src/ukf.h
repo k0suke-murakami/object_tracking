@@ -61,7 +61,7 @@ public:
     MatrixXd Xsig_pred_rm_;
 
     ///* time when the state is true, in us
-    long long time_us_;
+    long long time_;
 
     ///* Process noise standard deviation longitudinal acceleration in m/s^2
     double std_a_cv_;
@@ -106,11 +106,6 @@ public:
     ///* Augmented sigma point spreading parameter
     double lambda_aug_;
 
-    ///* the current NIS for radar
-    double NIS_radar_;
-
-    ///* the current NIS for laser
-    double NIS_laser_;
 
     int count_;
     int count_empty_;
@@ -164,17 +159,11 @@ public:
     MatrixXd K_ctrv_;
     MatrixXd K_rm_;
 
-    // Output filestreams for radar and laser NIS
-//    std::ofstream NISvals_laser_cv_;
-//    std::ofstream NISvals_laser_ctrv_;
-//    std::ofstream NISvals_laser_rm_;
-
     double gammaG_;
     double pD_;
     double pG_;
 
     int lifetime_;
-    std::vector<double> velo_history_;
     bool isStatic_;
 
     // bounding box params

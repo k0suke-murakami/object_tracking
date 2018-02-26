@@ -18,6 +18,10 @@ using namespace std;
 using namespace pcl;
 using namespace Eigen;
 
+Visualization::Visualization(){
+	
+}
+
 
 VectorXd Visualization::getCpFromBbox(const PointCloud<PointXYZ> bBox){
     PointXYZ p1 = bBox[0];
@@ -47,11 +51,7 @@ void Visualization::visualizeJSKBBox(const std_msgs::Header input_header,
 		assert(visNumVec.size() == visBBs.size());
 	}
 	
-	if(visBBs.size()>0){
-		cout << visBBs[0].size() << endl;
-	}
-
-
+	
 	for(int i = 0; i < visBBs.size(); i++){
 		jsk_recognition_msgs::BoundingBox bb;
 		bb.header          = input_header;
@@ -107,7 +107,6 @@ void Visualization::visualizeJSKBBox(const std_msgs::Header input_header,
 		pub_bb_msg.boxes.push_back(bb);
 	}
 	tracked_visbb_pub.publish(pub_bb_msg);
-	cout << 124 << endl;
 }
 
 void Visualization::visualizeArrow(const vector<int> trackManage, const ros::Publisher vis_arrow,

@@ -47,7 +47,7 @@ BoxFitting::BoxFitting(){
     ramPoints_ = 80;
 
     // l-shape fitting params
-    lSlopeDist_ = 30;
+    lSlopeDist_ = 2.0;
     lnumPoints_ = 300;
 
     // float sensorHeight_ = 1.73;
@@ -223,7 +223,7 @@ void BoxFitting::getBoundingBox(vector<PointCloud<PointXYZRGB>>  clusteredPoints
         uniform_int_distribution<> randPoints(0, numPoints-1);
 
         // start l shape fitting for car like object
-        // lSlopeDist = 30, lnumPoints = 300, picScale = 15: (means realSlopeDist > 2.0m)
+        // lSlopeDist_ = 2.0m
         if(slopeDist > lSlopeDist_ && numPoints > lnumPoints_){
             float maxDist = 0;
             float maxDx, maxDy;

@@ -16,7 +16,7 @@ using namespace pcl;
 
 ComponentClustering::ComponentClustering(){
     kernelSize_ = 3;
-    clusterId_  = 0;
+    // clusterId_  = 0;
     roiM_ = 60;
     // numGrid_ = 400;
 }
@@ -57,6 +57,7 @@ void ComponentClustering::search(array<array<int, numGrid_>, numGrid_> & cartesi
 }
 
 void ComponentClustering::findComponent(array<array<int, numGrid_>, numGrid_> & cartesianData){
+    clusterId_ = 0;
     for(int cellX = 0; cellX < numGrid_; cellX++){
         for(int cellY = 0; cellY < numGrid_; cellY++){
             if(cartesianData[cellX][cellY] == -1){
