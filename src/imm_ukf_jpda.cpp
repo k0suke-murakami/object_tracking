@@ -16,17 +16,6 @@ using namespace Eigen;
 using namespace pcl;
 
 
-//? how to make them local/class variables
-// bool init_= false;
-// double timestamp_ ;
-// double egoVelo_;
-// double egoYaw_;
-// double egoPreYaw_;
-// VectorXd preMeas_;
-// vector<UKF> targets_;
-// vector<int> trackNumVec_;
-
-
 Tracking::Tracking(){
     //dynamic 
     init_ = false;
@@ -577,7 +566,7 @@ void Tracking::mergeOverSegmentation(const vector<UKF> targets){
 }
 
 
-void Tracking::immUkfPdaf(const vector<PointCloud<PointXYZ>> bBoxes, const double timestamp,
+void Tracking::immUkfPdaf(const vector<pcl::PointCloud<pcl::PointXYZ>> bBoxes, const double timestamp,
                      PointCloud<PointXYZ>& targetPoints, vector<vector<double>>& targetVandYaw,
                      vector<int>& trackManage, vector<bool>& isStaticVec,
                      vector<bool>& isVisVec, vector<PointCloud<PointXYZ>>& visBBs,
@@ -586,6 +575,11 @@ void Tracking::immUkfPdaf(const vector<PointCloud<PointXYZ>> bBoxes, const doubl
 	// convert from bboxes to cx,cy + each points
     // calculate cx, cy, http://imagingsolution.blog107.fc2.com/blog-entry-137.html
     vector<vector<double>> trackPoints;
+    // std::cout<<endl << "inside tracker"<< std::endl;
+    // std::cout << "0 cluster pointloud data "<<bBoxes[0] << std::endl;
+    std::cout << "cluster num "<<bBoxes.size() << std::endl;
+    // std::cout << "0 cluster size "<<bBoxes[0].size() << std::endl;
+    // std::cout << "0 cluster first point y element "<<bBoxes[0][0].y << std::endl;
     for(int i = 0; i < bBoxes.size(); i ++){
         PointXYZ p1 = bBoxes[i][0];
         PointXYZ p2 = bBoxes[i][1];
@@ -806,8 +800,8 @@ void Tracking::immUkfPdaf(const vector<PointCloud<PointXYZ>> bBoxes, const doubl
     // making poitns and arrows for visualization
     int targetNumCount = 0;
     for(int i = 0; i < targets_.size(); i++){
-        double tx   = targets_[i].x_merge_(0);
-        double ty   = targets_[i].x_merge_(1);
+        double tx = targets_[i].x_merge_(0);
+        double ty = targets_[i].x_merge_(1);
         double mx = targets_[i].initMeas_(0);
         double my = targets_[i].initMeas_(1);
         

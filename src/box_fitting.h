@@ -11,7 +11,7 @@
 #include <opencv2/opencv.hpp>
 
 
-#include "component_clustering.h"
+// #include "component_clustering.h"
 
 using namespace std;
 using namespace pcl;

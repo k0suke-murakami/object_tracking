@@ -48,10 +48,12 @@ BoxFitting::BoxFitting(){
 
     // l-shape fitting params
     lSlopeDist_ = 2.0;
-    lnumPoints_ = 300;
+    lnumPoints_ = 10;
+    //lnumPoints_ = 300;
 
     // float sensorHeight_ = 1.73;
-    sensorHeight_ = 2.35;
+    sensorHeight_ = 0;
+    // sensorHeight_ = 2.35;
 
     // rule-based filter params
     tHeightMin_ = 1.0;
@@ -260,8 +262,9 @@ void BoxFitting::getBoundingBox(vector<PointCloud<PointXYZRGB>>  clusteredPoints
             pcPoints[1] = Point2f(maxDx, maxDy);
             pcPoints[2] = Point2f(maxMx, maxMy);
             pcPoints[3] = Point2f(lastX, lastY);
-            bool isPromising = ruleBasedFilter(pcPoints, maxZ, numPoints);
-            if(!isPromising) continue;
+            // bool isPromising = ruleBasedFilter(pcPoints, maxZ, numPoints);
+            // if(!isPromising) continue;
+
             // ------start visualization-----
             // cast (-15 < x,y < 15) into (0 < x,y < 30)
 //            float a = maxMx + roiM_/2;
@@ -318,15 +321,16 @@ void BoxFitting::getBoundingBox(vector<PointCloud<PointXYZRGB>>  clusteredPoints
             // covert points back to lidar coordinate
             getPointsInPcFrame(rectPoints, pcPoints, offsetInitX, offsetInitY);
             // rule based filter
-            bool isPromising = ruleBasedFilter(pcPoints, maxZ, numPoints);
-            if(!isPromising) continue;
+            // bool isPromising = ruleBasedFilter(pcPoints, maxZ, numPoints);
+            // if(!isPromising) continue;
+
             // for visualization
 //            for( int j = 0; j < 4; j++ )
 //                line( m, rectPoints[j], rectPoints[(j+1)%4], Scalar(255,255,0), 1, 8 );
 //            imshow("Display Image", m);
 //            waitKey(0);
         }
-
+        // std::cout << pcPoints << std::endl;
         // make pcl cloud for 3d bounding box
         PointCloud<PointXYZ> oneBbox;
         for(int pclH = 0; pclH < 2; pclH++){
@@ -339,6 +343,7 @@ void BoxFitting::getBoundingBox(vector<PointCloud<PointXYZRGB>>  clusteredPoints
                 oneBbox.push_back(o);
             }
         }
+        // std::cout << "cluster size "<<oneBbox.size() << std::endl;
         bbPoints.push_back(oneBbox);
     }
 }
@@ -348,5 +353,6 @@ vector<PointCloud<PointXYZ>> BoxFitting::getBBoxes(vector<PointCloud<PointXYZRGB
     // fitting bbox by using minAreaRect or l-shape
     vector<PointCloud<PointXYZ>>  bbPoints;
     getBoundingBox(clusteredPoints, timestamp, bbPoints);
+    // std::cout << "0 cluster size "<<bbPoints[0].size() << std::endl;
     return bbPoints;
 }

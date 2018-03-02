@@ -65,7 +65,7 @@ private:
 public:
 	Tracking();
 	Eigen::VectorXd getCpFromBbox(const PointCloud<PointXYZ> bBox);
-	void immUkfPdaf(const vector<PointCloud<PointXYZ>> bBoxes, const double timestamp, 
+	void immUkfPdaf(const vector<pcl::PointCloud<pcl::PointXYZ>> bBoxes, const double timestamp, 
 	PointCloud<PointXYZ>& targets, vector<vector<double>>& targetVandYaw, 
 	vector<int>& trackManage, vector<bool>& isStaticVec,
 	vector<bool>& isVisVec, vector<PointCloud<PointXYZ>>& visBB,
